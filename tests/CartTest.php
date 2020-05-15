@@ -18,928 +18,928 @@ use Gloudemans\Tests\Shoppingcart\Fixtures\BuyableProduct;
 
 class CartTest extends TestCase
 {
-    use CartAssertions;
-
-    /**
-     * Set the package service provider.
-     *
-     * @param \Illuminate\Foundation\Application $app
-     * @return array
-     */
-    protected function getPackageProviders($app)
-    {
-        return [ShoppingcartServiceProvider::class];
-    }
-
-    /**
-     * Define environment setup.
-     *
-     * @param  \Illuminate\Foundation\Application  $app
-     * @return void
-     */
-    protected function getEnvironmentSetUp($app)
-    {
-        $app['config']->set('cart.database.connection', 'testing');
-
-        $app['config']->set('session.driver', 'array');
+	use CartAssertions;
+
+	/**
+	 * Set the package service provider.
+	 *
+	 * @param \Illuminate\Foundation\Application $app
+	 * @return array
+	 */
+	protected function getPackageProviders($app)
+	{
+		return [ShoppingcartServiceProvider::class];
+	}
 
-        $app['config']->set('database.default', 'testing');
-        $app['config']->set('database.connections.testing', [
-            'driver'   => 'sqlite',
-            'database' => ':memory:',
-            'prefix'   => '',
-        ]);
-    }
+	/**
+	 * Define environment setup.
+	 *
+	 * @param  \Illuminate\Foundation\Application  $app
+	 * @return void
+	 */
+	protected function getEnvironmentSetUp($app)
+	{
+		$app['config']->set('cart.database.connection', 'testing');
 
-    /**
-     * Setup the test environment.
-     *
-     * @return void
-     */
-    protected function setUp()
-    {
-        parent::setUp();
+		$app['config']->set('session.driver', 'array');
 
-        $this->app->afterResolving('migrator', function ($migrator) {
-            $migrator->path(realpath(__DIR__.'/../database/migrations'));
-        });
-    }
+		$app['config']->set('database.default', 'testing');
+		$app['config']->set('database.connections.testing', [
+			'driver'   => 'sqlite',
+			'database' => ':memory:',
+			'prefix'   => '',
+		]);
+	}
 
-    /** @test */
-    public function it_has_a_default_instance()
-    {
-        $cart = $this->getCart();
+	/**
+	 * Setup the test environment.
+	 *
+	 * @return void
+	 */
+	protected function setUp()
+	{
+		parent::setUp();
 
-        $this->assertEquals(Cart::DEFAULT_INSTANCE, $cart->currentInstance());
-    }
+		$this->app->afterResolving('migrator', function ($migrator) {
+			$migrator->path(realpath(__DIR__.'/../database/migrations'));
+		});
+	}
 
-    /** @test */
-    public function it_can_have_multiple_instances()
-    {
-        $cart = $this->getCart();
+	/** @test */
+	public function it_has_a_default_instance()
+	{
+		$cart = $this->getCart();
 
-        $cart->add(new BuyableProduct(1, 'First item'));
+		$this->assertEquals(Cart::DEFAULT_INSTANCE, $cart->currentInstance());
+	}
 
-        $cart->instance('wishlist')->add(new BuyableProduct(2, 'Second item'));
+	/** @test */
+	public function it_can_have_multiple_instances()
+	{
+		$cart = $this->getCart();
 
-        $this->assertItemsInCart(1, $cart->instance(Cart::DEFAULT_INSTANCE));
-        $this->assertItemsInCart(1, $cart->instance('wishlist'));
-    }
-    
-    /** @test */
-    public function it_can_add_an_item()
-    {
-        Event::fake();
+		$cart->add(new BuyableProduct(1, 'First item'));
 
-        $cart = $this->getCart();
+		$cart->instance('wishlist')->add(new BuyableProduct(2, 'Second item'));
 
-        $cart->add(new BuyableProduct);
+		$this->assertItemsInCart(1, $cart->instance(Cart::DEFAULT_INSTANCE));
+		$this->assertItemsInCart(1, $cart->instance('wishlist'));
+	}
 
-        $this->assertEquals(1, $cart->count());
+	/** @test */
+	public function it_can_add_an_item()
+	{
+		Event::fake();
 
-        Event::assertDispatched('cart.added');
-    }
+		$cart = $this->getCart();
 
-    /** @test */
-    public function it_will_return_the_cartitem_of_the_added_item()
-    {
-        Event::fake();
+		$cart->add(new BuyableProduct);
 
-        $cart = $this->getCart();
+		$this->assertEquals(1, $cart->count());
 
-        $cartItem = $cart->add(new BuyableProduct);
+		Event::assertDispatched('cart.added');
+	}
 
-        $this->assertInstanceOf(CartItem::class, $cartItem);
-        $this->assertEquals('027c91341fd5cf4d2579b49c4b6a90da', $cartItem->rowId);
+	/** @test */
+	public function it_will_return_the_cartitem_of_the_added_item()
+	{
+		Event::fake();
 
-        Event::assertDispatched('cart.added');
-    }
+		$cart = $this->getCart();
 
-    /** @test */
-    public function it_can_add_multiple_buyable_items_at_once()
-    {
-        Event::fake();
+		$cartItem = $cart->add(new BuyableProduct);
 
-        $cart = $this->getCart();
+		$this->assertInstanceOf(CartItem::class, $cartItem);
+		$this->assertEquals('027c91341fd5cf4d2579b49c4b6a90da', $cartItem->rowId);
 
-        $cart->add([new BuyableProduct(1), new BuyableProduct(2)]);
+		Event::assertDispatched('cart.added');
+	}
 
-        $this->assertEquals(2, $cart->count());
+	/** @test */
+	public function it_can_add_multiple_buyable_items_at_once()
+	{
+		Event::fake();
 
-        Event::assertDispatched('cart.added');
-    }
+		$cart = $this->getCart();
 
-    /** @test */
-    public function it_will_return_an_array_of_cartitems_when_you_add_multiple_items_at_once()
-    {
-        Event::fake();
+		$cart->add([new BuyableProduct(1), new BuyableProduct(2)]);
 
-        $cart = $this->getCart();
+		$this->assertEquals(2, $cart->count());
 
-        $cartItems = $cart->add([new BuyableProduct(1), new BuyableProduct(2)]);
+		Event::assertDispatched('cart.added');
+	}
 
-        $this->assertTrue(is_array($cartItems));
-        $this->assertCount(2, $cartItems);
-        $this->assertContainsOnlyInstancesOf(CartItem::class, $cartItems);
+	/** @test */
+	public function it_will_return_an_array_of_cartitems_when_you_add_multiple_items_at_once()
+	{
+		Event::fake();
 
-        Event::assertDispatched('cart.added');
-    }
+		$cart = $this->getCart();
 
-    /** @test */
-    public function it_can_add_an_item_from_attributes()
-    {
-        Event::fake();
+		$cartItems = $cart->add([new BuyableProduct(1), new BuyableProduct(2)]);
 
-        $cart = $this->getCart();
+		$this->assertTrue(is_array($cartItems));
+		$this->assertCount(2, $cartItems);
+		$this->assertContainsOnlyInstancesOf(CartItem::class, $cartItems);
 
-        $cart->add(1, 'Test item', 1, 10.00);
+		Event::assertDispatched('cart.added');
+	}
 
-        $this->assertEquals(1, $cart->count());
+	/** @test */
+	public function it_can_add_an_item_from_attributes()
+	{
+		Event::fake();
 
-        Event::assertDispatched('cart.added');
-    }
+		$cart = $this->getCart();
 
-    /** @test */
-    public function it_can_add_an_item_from_an_array()
-    {
-        Event::fake();
+		$cart->add(1, 'Test item', 1, 10.00);
 
-        $cart = $this->getCart();
+		$this->assertEquals(1, $cart->count());
 
-        $cart->add(['id' => 1, 'name' => 'Test item', 'qty' => 1, 'price' => 10.00]);
+		Event::assertDispatched('cart.added');
+	}
 
-        $this->assertEquals(1, $cart->count());
+	/** @test */
+	public function it_can_add_an_item_from_an_array()
+	{
+		Event::fake();
 
-        Event::assertDispatched('cart.added');
-    }
+		$cart = $this->getCart();
 
-    /** @test */
-    public function it_can_add_multiple_array_items_at_once()
-    {
-        Event::fake();
+		$cart->add(['id' => 1, 'name' => 'Test item', 'qty' => 1, 'price' => 10.00]);
 
-        $cart = $this->getCart();
+		$this->assertEquals(1, $cart->count());
 
-        $cart->add([
-            ['id' => 1, 'name' => 'Test item 1', 'qty' => 1, 'price' => 10.00],
-            ['id' => 2, 'name' => 'Test item 2', 'qty' => 1, 'price' => 10.00]
-        ]);
+		Event::assertDispatched('cart.added');
+	}
 
-        $this->assertEquals(2, $cart->count());
+	/** @test */
+	public function it_can_add_multiple_array_items_at_once()
+	{
+		Event::fake();
 
-        Event::assertDispatched('cart.added');
-    }
+		$cart = $this->getCart();
 
-    /** @test */
-    public function it_can_add_an_item_with_options()
-    {
-        Event::fake();
+		$cart->add([
+			['id' => 1, 'name' => 'Test item 1', 'qty' => 1, 'price' => 10.00],
+			['id' => 2, 'name' => 'Test item 2', 'qty' => 1, 'price' => 10.00]
+		]);
 
-        $cart = $this->getCart();
+		$this->assertEquals(2, $cart->count());
 
-        $options = ['size' => 'XL', 'color' => 'red'];
+		Event::assertDispatched('cart.added');
+	}
 
-        $cart->add(new BuyableProduct, 1, $options);
+	/** @test */
+	public function it_can_add_an_item_with_options()
+	{
+		Event::fake();
 
-        $cartItem = $cart->get('07d5da5550494c62daf9993cf954303f');
+		$cart = $this->getCart();
 
-        $this->assertInstanceOf(CartItem::class, $cartItem);
-        $this->assertEquals('XL', $cartItem->options->size);
-        $this->assertEquals('red', $cartItem->options->color);
+		$options = ['size' => 'XL', 'color' => 'red'];
 
-        Event::assertDispatched('cart.added');
-    }
+		$cart->add(new BuyableProduct, 1, $options);
 
-    /**
-     * @test
-     * @expectedException \InvalidArgumentException
-     * @expectedExceptionMessage Please supply a valid identifier.
-     */
-    public function it_will_validate_the_identifier()
-    {
-        $cart = $this->getCart();
+		$cartItem = $cart->get('07d5da5550494c62daf9993cf954303f');
 
-        $cart->add(null, 'Some title', 1, 10.00);
-    }
+		$this->assertInstanceOf(CartItem::class, $cartItem);
+		$this->assertEquals('XL', $cartItem->options->size);
+		$this->assertEquals('red', $cartItem->options->color);
 
-    /**
-     * @test
-     * @expectedException \InvalidArgumentException
-     * @expectedExceptionMessage Please supply a valid name.
-     */
-    public function it_will_validate_the_name()
-    {
-        $cart = $this->getCart();
+		Event::assertDispatched('cart.added');
+	}
 
-        $cart->add(1, null, 1, 10.00);
-    }
+	/**
+	 * @test
+	 * @expectedException \InvalidArgumentException
+	 * @expectedExceptionMessage Please supply a valid identifier.
+	 */
+	public function it_will_validate_the_identifier()
+	{
+		$cart = $this->getCart();
 
-    /**
-     * @test
-     * @expectedException \InvalidArgumentException
-     * @expectedExceptionMessage Please supply a valid quantity.
-     */
-    public function it_will_validate_the_quantity()
-    {
-        $cart = $this->getCart();
+		$cart->add(null, 'Some title', 1, 10.00);
+	}
 
-        $cart->add(1, 'Some title', 'invalid', 10.00);
-    }
+	/**
+	 * @test
+	 * @expectedException \InvalidArgumentException
+	 * @expectedExceptionMessage Please supply a valid name.
+	 */
+	public function it_will_validate_the_name()
+	{
+		$cart = $this->getCart();
 
-    /**
-     * @test
-     * @expectedException \InvalidArgumentException
-     * @expectedExceptionMessage Please supply a valid price.
-     */
-    public function it_will_validate_the_price()
-    {
-        $cart = $this->getCart();
+		$cart->add(1, null, 1, 10.00);
+	}
 
-        $cart->add(1, 'Some title', 1, 'invalid');
-    }
+	/**
+	 * @test
+	 * @expectedException \InvalidArgumentException
+	 * @expectedExceptionMessage Please supply a valid quantity.
+	 */
+	public function it_will_validate_the_quantity()
+	{
+		$cart = $this->getCart();
 
-    /** @test */
-    public function it_will_update_the_cart_if_the_item_already_exists_in_the_cart()
-    {
-        $cart = $this->getCart();
+		$cart->add(1, 'Some title', 'invalid', 10.00);
+	}
 
-        $item = new BuyableProduct;
+	/**
+	 * @test
+	 * @expectedException \InvalidArgumentException
+	 * @expectedExceptionMessage Please supply a valid price.
+	 */
+	public function it_will_validate_the_price()
+	{
+		$cart = $this->getCart();
 
-        $cart->add($item);
-        $cart->add($item);
+		$cart->add(1, 'Some title', 1, 'invalid');
+	}
 
-        $this->assertItemsInCart(2, $cart);
-        $this->assertRowsInCart(1, $cart);
-    }
+	/** @test */
+	public function it_will_update_the_cart_if_the_item_already_exists_in_the_cart()
+	{
+		$cart = $this->getCart();
 
-    /** @test */
-    public function it_will_keep_updating_the_quantity_when_an_item_is_added_multiple_times()
-    {
-        $cart = $this->getCart();
+		$item = new BuyableProduct;
 
-        $item = new BuyableProduct;
+		$cart->add($item);
+		$cart->add($item);
 
-        $cart->add($item);
-        $cart->add($item);
-        $cart->add($item);
+		$this->assertItemsInCart(2, $cart);
+		$this->assertRowsInCart(1, $cart);
+	}
 
-        $this->assertItemsInCart(3, $cart);
-        $this->assertRowsInCart(1, $cart);
-    }
+	/** @test */
+	public function it_will_keep_updating_the_quantity_when_an_item_is_added_multiple_times()
+	{
+		$cart = $this->getCart();
 
-    /** @test */
-    public function it_can_update_the_quantity_of_an_existing_item_in_the_cart()
-    {
-        Event::fake();
+		$item = new BuyableProduct;
 
-        $cart = $this->getCart();
+		$cart->add($item);
+		$cart->add($item);
+		$cart->add($item);
 
-        $cart->add(new BuyableProduct);
+		$this->assertItemsInCart(3, $cart);
+		$this->assertRowsInCart(1, $cart);
+	}
 
-        $cart->update('027c91341fd5cf4d2579b49c4b6a90da', 2);
+	/** @test */
+	public function it_can_update_the_quantity_of_an_existing_item_in_the_cart()
+	{
+		Event::fake();
 
-        $this->assertItemsInCart(2, $cart);
-        $this->assertRowsInCart(1, $cart);
+		$cart = $this->getCart();
 
-        Event::assertDispatched('cart.updated');
-    }
+		$cart->add(new BuyableProduct);
 
-    /** @test */
-    public function it_can_update_an_existing_item_in_the_cart_from_a_buyable()
-    {
-        Event::fake();
+		$cart->update('027c91341fd5cf4d2579b49c4b6a90da', 2);
 
-        $cart = $this->getCart();
+		$this->assertItemsInCart(2, $cart);
+		$this->assertRowsInCart(1, $cart);
 
-        $cart->add(new BuyableProduct);
+		Event::assertDispatched('cart.updated');
+	}
 
-        $cart->update('027c91341fd5cf4d2579b49c4b6a90da', new BuyableProduct(1, 'Different description'));
+	/** @test */
+	public function it_can_update_an_existing_item_in_the_cart_from_a_buyable()
+	{
+		Event::fake();
 
-        $this->assertItemsInCart(1, $cart);
-        $this->assertEquals('Different description', $cart->get('027c91341fd5cf4d2579b49c4b6a90da')->name);
+		$cart = $this->getCart();
 
-        Event::assertDispatched('cart.updated');
-    }
+		$cart->add(new BuyableProduct);
 
-    /** @test */
-    public function it_can_update_an_existing_item_in_the_cart_from_an_array()
-    {
-        Event::fake();
+		$cart->update('027c91341fd5cf4d2579b49c4b6a90da', new BuyableProduct(1, 'Different description'));
 
-        $cart = $this->getCart();
+		$this->assertItemsInCart(1, $cart);
+		$this->assertEquals('Different description', $cart->get('027c91341fd5cf4d2579b49c4b6a90da')->name);
 
-        $cart->add(new BuyableProduct);
+		Event::assertDispatched('cart.updated');
+	}
 
-        $cart->update('027c91341fd5cf4d2579b49c4b6a90da', ['name' => 'Different description']);
+	/** @test */
+	public function it_can_update_an_existing_item_in_the_cart_from_an_array()
+	{
+		Event::fake();
 
-        $this->assertItemsInCart(1, $cart);
-        $this->assertEquals('Different description', $cart->get('027c91341fd5cf4d2579b49c4b6a90da')->name);
+		$cart = $this->getCart();
 
-        Event::assertDispatched('cart.updated');
-    }
+		$cart->add(new BuyableProduct);
 
-    /**
-     * @test
-     * @expectedException \Gloudemans\Shoppingcart\Exceptions\InvalidRowIDException
-     */
-    public function it_will_throw_an_exception_if_a_rowid_was_not_found()
-    {
-        $cart = $this->getCart();
+		$cart->update('027c91341fd5cf4d2579b49c4b6a90da', ['name' => 'Different description']);
 
-        $cart->add(new BuyableProduct);
+		$this->assertItemsInCart(1, $cart);
+		$this->assertEquals('Different description', $cart->get('027c91341fd5cf4d2579b49c4b6a90da')->name);
 
-        $cart->update('none-existing-rowid', new BuyableProduct(1, 'Different description'));
-    }
+		Event::assertDispatched('cart.updated');
+	}
 
-    /** @test */
-    public function it_will_regenerate_the_rowid_if_the_options_changed()
-    {
-        $cart = $this->getCart();
+	/**
+	 * @test
+	 * @expectedException \Gloudemans\Shoppingcart\Exceptions\InvalidRowIDException
+	 */
+	public function it_will_throw_an_exception_if_a_rowid_was_not_found()
+	{
+		$cart = $this->getCart();
 
-        $cart->add(new BuyableProduct, 1, ['color' => 'red']);
+		$cart->add(new BuyableProduct);
 
-        $cart->update('ea65e0bdcd1967c4b3149e9e780177c0', ['options' => ['color' => 'blue']]);
+		$cart->update('none-existing-rowid', new BuyableProduct(1, 'Different description'));
+	}
 
-        $this->assertItemsInCart(1, $cart);
-        $this->assertEquals('7e70a1e9aaadd18c72921a07aae5d011', $cart->content()->first()->rowId);
-        $this->assertEquals('blue', $cart->get('7e70a1e9aaadd18c72921a07aae5d011')->options->color);
-    }
+	/** @test */
+	public function it_will_regenerate_the_rowid_if_the_options_changed()
+	{
+		$cart = $this->getCart();
 
-    /** @test */
-    public function it_will_add_the_item_to_an_existing_row_if_the_options_changed_to_an_existing_rowid()
-    {
-        $cart = $this->getCart();
+		$cart->add(new BuyableProduct, 1, ['color' => 'red']);
 
-        $cart->add(new BuyableProduct, 1, ['color' => 'red']);
-        $cart->add(new BuyableProduct, 1, ['color' => 'blue']);
+		$cart->update('ea65e0bdcd1967c4b3149e9e780177c0', ['options' => ['color' => 'blue']]);
 
-        $cart->update('7e70a1e9aaadd18c72921a07aae5d011', ['options' => ['color' => 'red']]);
+		$this->assertItemsInCart(1, $cart);
+		$this->assertEquals('7e70a1e9aaadd18c72921a07aae5d011', $cart->content()->first()->rowId);
+		$this->assertEquals('blue', $cart->get('7e70a1e9aaadd18c72921a07aae5d011')->options->color);
+	}
 
-        $this->assertItemsInCart(2, $cart);
-        $this->assertRowsInCart(1, $cart);
-    }
+	/** @test */
+	public function it_will_add_the_item_to_an_existing_row_if_the_options_changed_to_an_existing_rowid()
+	{
+		$cart = $this->getCart();
 
-    /** @test */
-    public function it_can_remove_an_item_from_the_cart()
-    {
-        Event::fake();
+		$cart->add(new BuyableProduct, 1, ['color' => 'red']);
+		$cart->add(new BuyableProduct, 1, ['color' => 'blue']);
 
-        $cart = $this->getCart();
+		$cart->update('7e70a1e9aaadd18c72921a07aae5d011', ['options' => ['color' => 'red']]);
 
-        $cart->add(new BuyableProduct);
+		$this->assertItemsInCart(2, $cart);
+		$this->assertRowsInCart(1, $cart);
+	}
 
-        $cart->remove('027c91341fd5cf4d2579b49c4b6a90da');
+	/** @test */
+	public function it_can_remove_an_item_from_the_cart()
+	{
+		Event::fake();
 
-        $this->assertItemsInCart(0, $cart);
-        $this->assertRowsInCart(0, $cart);
+		$cart = $this->getCart();
 
-        Event::assertDispatched('cart.removed');
-    }
+		$cart->add(new BuyableProduct);
 
-    /** @test */
-    public function it_will_remove_the_item_if_its_quantity_was_set_to_zero()
-    {
-        Event::fake();
+		$cart->remove('027c91341fd5cf4d2579b49c4b6a90da');
 
-        $cart = $this->getCart();
+		$this->assertItemsInCart(0, $cart);
+		$this->assertRowsInCart(0, $cart);
 
-        $cart->add(new BuyableProduct);
+		Event::assertDispatched('cart.removed');
+	}
 
-        $cart->update('027c91341fd5cf4d2579b49c4b6a90da', 0);
+	/** @test */
+	public function it_will_remove_the_item_if_its_quantity_was_set_to_zero()
+	{
+		Event::fake();
 
-        $this->assertItemsInCart(0, $cart);
-        $this->assertRowsInCart(0, $cart);
+		$cart = $this->getCart();
 
-        Event::assertDispatched('cart.removed');
-    }
+		$cart->add(new BuyableProduct);
 
-    /** @test */
-    public function it_will_remove_the_item_if_its_quantity_was_set_negative()
-    {
-        Event::fake();
+		$cart->update('027c91341fd5cf4d2579b49c4b6a90da', 0);
 
-        $cart = $this->getCart();
+		$this->assertItemsInCart(0, $cart);
+		$this->assertRowsInCart(0, $cart);
 
-        $cart->add(new BuyableProduct);
+		Event::assertDispatched('cart.removed');
+	}
 
-        $cart->update('027c91341fd5cf4d2579b49c4b6a90da', -1);
+	/** @test */
+	public function it_will_remove_the_item_if_its_quantity_was_set_negative()
+	{
+		Event::fake();
 
-        $this->assertItemsInCart(0, $cart);
-        $this->assertRowsInCart(0, $cart);
+		$cart = $this->getCart();
 
-        Event::assertDispatched('cart.removed');
-    }
+		$cart->add(new BuyableProduct);
 
-    /** @test */
-    public function it_can_get_an_item_from_the_cart_by_its_rowid()
-    {
-        $cart = $this->getCart();
+		$cart->update('027c91341fd5cf4d2579b49c4b6a90da', -1);
 
-        $cart->add(new BuyableProduct);
+		$this->assertItemsInCart(0, $cart);
+		$this->assertRowsInCart(0, $cart);
 
-        $cartItem = $cart->get('027c91341fd5cf4d2579b49c4b6a90da');
+		Event::assertDispatched('cart.removed');
+	}
 
-        $this->assertInstanceOf(CartItem::class, $cartItem);
-    }
+	/** @test */
+	public function it_can_get_an_item_from_the_cart_by_its_rowid()
+	{
+		$cart = $this->getCart();
 
-    /** @test */
-    public function it_can_get_the_content_of_the_cart()
-    {
-        $cart = $this->getCart();
+		$cart->add(new BuyableProduct);
 
-        $cart->add(new BuyableProduct(1));
-        $cart->add(new BuyableProduct(2));
+		$cartItem = $cart->get('027c91341fd5cf4d2579b49c4b6a90da');
 
-        $content = $cart->content();
+		$this->assertInstanceOf(CartItem::class, $cartItem);
+	}
 
-        $this->assertInstanceOf(Collection::class, $content);
-        $this->assertCount(2, $content);
-    }
+	/** @test */
+	public function it_can_get_the_content_of_the_cart()
+	{
+		$cart = $this->getCart();
 
-    /** @test */
-    public function it_will_return_an_empty_collection_if_the_cart_is_empty()
-    {
-        $cart = $this->getCart();
+		$cart->add(new BuyableProduct(1));
+		$cart->add(new BuyableProduct(2));
 
-        $content = $cart->content();
+		$content = $cart->content();
 
-        $this->assertInstanceOf(Collection::class, $content);
-        $this->assertCount(0, $content);
-    }
+		$this->assertInstanceOf(Collection::class, $content);
+		$this->assertCount(2, $content);
+	}
 
-    /** @test */
-    public function it_will_include_the_tax_and_subtotal_when_converted_to_an_array()
-    {
-        $cart = $this->getCart();
+	/** @test */
+	public function it_will_return_an_empty_collection_if_the_cart_is_empty()
+	{
+		$cart = $this->getCart();
 
-        $cart->add(new BuyableProduct(1));
-        $cart->add(new BuyableProduct(2));
+		$content = $cart->content();
 
-        $content = $cart->content();
+		$this->assertInstanceOf(Collection::class, $content);
+		$this->assertCount(0, $content);
+	}
 
-        $this->assertInstanceOf(Collection::class, $content);
-        $this->assertEquals([
-            '027c91341fd5cf4d2579b49c4b6a90da' => [
-                'rowId' => '027c91341fd5cf4d2579b49c4b6a90da',
-                'id' => 1,
-                'name' => 'Item name',
-                'qty' => 1,
-                'price' => 10.00,
-                'tax' => 2.10,
-                'subtotal' => 10.0,
-                'options' => [],
-            ],
-            '370d08585360f5c568b18d1f2e4ca1df' => [
-                'rowId' => '370d08585360f5c568b18d1f2e4ca1df',
-                'id' => 2,
-                'name' => 'Item name',
-                'qty' => 1,
-                'price' => 10.00,
-                'tax' => 2.10,
-                'subtotal' => 10.0,
-                'options' => [],
-            ]
-        ], $content->toArray());
-    }
+	/** @test */
+	public function it_will_include_the_tax_and_subtotal_when_converted_to_an_array()
+	{
+		$cart = $this->getCart();
 
-    /** @test */
-    public function it_can_destroy_a_cart()
-    {
-        $cart = $this->getCart();
+		$cart->add(new BuyableProduct(1));
+		$cart->add(new BuyableProduct(2));
 
-        $cart->add(new BuyableProduct);
+		$content = $cart->content();
 
-        $this->assertItemsInCart(1, $cart);
+		$this->assertInstanceOf(Collection::class, $content);
+		$this->assertEquals([
+			'027c91341fd5cf4d2579b49c4b6a90da' => [
+				'rowId' => '027c91341fd5cf4d2579b49c4b6a90da',
+				'id' => 1,
+				'name' => 'Item name',
+				'qty' => 1,
+				'price' => 10.00,
+				'tax' => 2.10,
+				'subtotal' => 10.0,
+				'options' => [],
+			],
+			'370d08585360f5c568b18d1f2e4ca1df' => [
+				'rowId' => '370d08585360f5c568b18d1f2e4ca1df',
+				'id' => 2,
+				'name' => 'Item name',
+				'qty' => 1,
+				'price' => 10.00,
+				'tax' => 2.10,
+				'subtotal' => 10.0,
+				'options' => [],
+			]
+		], $content->toArray());
+	}
 
-        $cart->destroy();
+	/** @test */
+	public function it_can_destroy_a_cart()
+	{
+		$cart = $this->getCart();
 
-        $this->assertItemsInCart(0, $cart);
-    }
+		$cart->add(new BuyableProduct);
 
-    /** @test */
-    public function it_can_get_the_total_price_of_the_cart_content()
-    {
-        $cart = $this->getCart();
+		$this->assertItemsInCart(1, $cart);
 
-        $cart->add(new BuyableProduct(1, 'First item', 10.00));
-        $cart->add(new BuyableProduct(2, 'Second item', 25.00), 2);
+		$cart->destroy();
 
-        $this->assertItemsInCart(3, $cart);
-        $this->assertEquals(60.00, $cart->subtotal());
-    }
+		$this->assertItemsInCart(0, $cart);
+	}
 
-    /** @test */
-    public function it_can_return_a_formatted_total()
-    {
-        $cart = $this->getCart();
+	/** @test */
+	public function it_can_get_the_total_price_of_the_cart_content()
+	{
+		$cart = $this->getCart();
 
-        $cart->add(new BuyableProduct(1, 'First item', 1000.00));
-        $cart->add(new BuyableProduct(2, 'Second item', 2500.00), 2);
+		$cart->add(new BuyableProduct(1, 'First item', 10.00));
+		$cart->add(new BuyableProduct(2, 'Second item', 25.00), 2);
 
-        $this->assertItemsInCart(3, $cart);
-        $this->assertEquals('6.000,00', $cart->subtotal(2, ',', '.'));
-    }
+		$this->assertItemsInCart(3, $cart);
+		$this->assertEquals(60.00, $cart->subtotal());
+	}
 
-    /** @test */
-    public function it_can_search_the_cart_for_a_specific_item()
-    {
-        $cart = $this->getCart();
+	/** @test */
+	public function it_can_return_a_formatted_total()
+	{
+		$cart = $this->getCart();
 
-        $cart->add(new BuyableProduct(1, 'Some item'));
-        $cart->add(new BuyableProduct(2, 'Another item'));
+		$cart->add(new BuyableProduct(1, 'First item', 1000.00));
+		$cart->add(new BuyableProduct(2, 'Second item', 2500.00), 2);
 
-        $cartItem = $cart->search(function ($cartItem, $rowId) {
-            return $cartItem->name == 'Some item';
-        });
+		$this->assertItemsInCart(3, $cart);
+		$this->assertEquals('6.000,00', $cart->subtotal(2, ',', '.'));
+	}
 
-        $this->assertInstanceOf(Collection::class, $cartItem);
-        $this->assertCount(1, $cartItem);
-        $this->assertInstanceOf(CartItem::class, $cartItem->first());
-        $this->assertEquals(1, $cartItem->first()->id);
-    }
+	/** @test */
+	public function it_can_search_the_cart_for_a_specific_item()
+	{
+		$cart = $this->getCart();
 
-    /** @test */
-    public function it_can_search_the_cart_for_multiple_items()
-    {
-        $cart = $this->getCart();
+		$cart->add(new BuyableProduct(1, 'Some item'));
+		$cart->add(new BuyableProduct(2, 'Another item'));
 
-        $cart->add(new BuyableProduct(1, 'Some item'));
-        $cart->add(new BuyableProduct(2, 'Some item'));
-        $cart->add(new BuyableProduct(3, 'Another item'));
+		$cartItem = $cart->search(function ($cartItem, $rowId) {
+			return $cartItem->name == 'Some item';
+		});
 
-        $cartItem = $cart->search(function ($cartItem, $rowId) {
-            return $cartItem->name == 'Some item';
-        });
+		$this->assertInstanceOf(Collection::class, $cartItem);
+		$this->assertCount(1, $cartItem);
+		$this->assertInstanceOf(CartItem::class, $cartItem->first());
+		$this->assertEquals(1, $cartItem->first()->id);
+	}
 
-        $this->assertInstanceOf(Collection::class, $cartItem);
-    }
+	/** @test */
+	public function it_can_search_the_cart_for_multiple_items()
+	{
+		$cart = $this->getCart();
 
-    /** @test */
-    public function it_can_search_the_cart_for_a_specific_item_with_options()
-    {
-        $cart = $this->getCart();
+		$cart->add(new BuyableProduct(1, 'Some item'));
+		$cart->add(new BuyableProduct(2, 'Some item'));
+		$cart->add(new BuyableProduct(3, 'Another item'));
 
-        $cart->add(new BuyableProduct(1, 'Some item'), 1, ['color' => 'red']);
-        $cart->add(new BuyableProduct(2, 'Another item'), 1, ['color' => 'blue']);
+		$cartItem = $cart->search(function ($cartItem, $rowId) {
+			return $cartItem->name == 'Some item';
+		});
 
-        $cartItem = $cart->search(function ($cartItem, $rowId) {
-            return $cartItem->options->color == 'red';
-        });
+		$this->assertInstanceOf(Collection::class, $cartItem);
+	}
 
-        $this->assertInstanceOf(Collection::class, $cartItem);
-        $this->assertCount(1, $cartItem);
-        $this->assertInstanceOf(CartItem::class, $cartItem->first());
-        $this->assertEquals(1, $cartItem->first()->id);
-    }
+	/** @test */
+	public function it_can_search_the_cart_for_a_specific_item_with_options()
+	{
+		$cart = $this->getCart();
 
-    /** @test */
-    public function it_will_associate_the_cart_item_with_a_model_when_you_add_a_buyable()
-    {
-        $cart = $this->getCart();
+		$cart->add(new BuyableProduct(1, 'Some item'), 1, ['color' => 'red']);
+		$cart->add(new BuyableProduct(2, 'Another item'), 1, ['color' => 'blue']);
 
-        $cart->add(new BuyableProduct);
+		$cartItem = $cart->search(function ($cartItem, $rowId) {
+			return $cartItem->options->color == 'red';
+		});
 
-        $cartItem = $cart->get('027c91341fd5cf4d2579b49c4b6a90da');
+		$this->assertInstanceOf(Collection::class, $cartItem);
+		$this->assertCount(1, $cartItem);
+		$this->assertInstanceOf(CartItem::class, $cartItem->first());
+		$this->assertEquals(1, $cartItem->first()->id);
+	}
 
-        $this->assertContains(BuyableProduct::class, Assert::readAttribute($cartItem, 'associatedModel'));
-    }
+	/** @test */
+	public function it_will_associate_the_cart_item_with_a_model_when_you_add_a_buyable()
+	{
+		$cart = $this->getCart();
 
-    /** @test */
-    public function it_can_associate_the_cart_item_with_a_model()
-    {
-        $cart = $this->getCart();
+		$cart->add(new BuyableProduct);
 
-        $cart->add(1, 'Test item', 1, 10.00);
+		$cartItem = $cart->get('027c91341fd5cf4d2579b49c4b6a90da');
 
-        $cart->associate('027c91341fd5cf4d2579b49c4b6a90da', new ProductModel);
+		$this->assertContains(BuyableProduct::class, Assert::readAttribute($cartItem, 'associatedModel'));
+	}
 
-        $cartItem = $cart->get('027c91341fd5cf4d2579b49c4b6a90da');
+	/** @test */
+	public function it_can_associate_the_cart_item_with_a_model()
+	{
+		$cart = $this->getCart();
 
-        $this->assertEquals(ProductModel::class, Assert::readAttribute($cartItem, 'associatedModel'));
-    }
+		$cart->add(1, 'Test item', 1, 10.00);
 
-    /**
-     * @test
-     * @expectedException \Gloudemans\Shoppingcart\Exceptions\UnknownModelException
-     * @expectedExceptionMessage The supplied model SomeModel does not exist.
-     */
-    public function it_will_throw_an_exception_when_a_non_existing_model_is_being_associated()
-    {
-        $cart = $this->getCart();
+		$cart->associate('027c91341fd5cf4d2579b49c4b6a90da', new ProductModel);
 
-        $cart->add(1, 'Test item', 1, 10.00);
+		$cartItem = $cart->get('027c91341fd5cf4d2579b49c4b6a90da');
 
-        $cart->associate('027c91341fd5cf4d2579b49c4b6a90da', 'SomeModel');
-    }
+		$this->assertEquals(ProductModel::class, Assert::readAttribute($cartItem, 'associatedModel'));
+	}
 
-    /** @test */
-    public function it_can_get_the_associated_model_of_a_cart_item()
-    {
-        $cart = $this->getCart();
+	/**
+	 * @test
+	 * @expectedException \Gloudemans\Shoppingcart\Exceptions\UnknownModelException
+	 * @expectedExceptionMessage The supplied model SomeModel does not exist.
+	 */
+	public function it_will_throw_an_exception_when_a_non_existing_model_is_being_associated()
+	{
+		$cart = $this->getCart();
 
-        $cart->add(1, 'Test item', 1, 10.00);
+		$cart->add(1, 'Test item', 1, 10.00);
 
-        $cart->associate('027c91341fd5cf4d2579b49c4b6a90da', new ProductModel);
+		$cart->associate('027c91341fd5cf4d2579b49c4b6a90da', 'SomeModel');
+	}
 
-        $cartItem = $cart->get('027c91341fd5cf4d2579b49c4b6a90da');
+	/** @test */
+	public function it_can_get_the_associated_model_of_a_cart_item()
+	{
+		$cart = $this->getCart();
 
-        $this->assertInstanceOf(ProductModel::class, $cartItem->model);
-        $this->assertEquals('Some value', $cartItem->model->someValue);
-    }
+		$cart->add(1, 'Test item', 1, 10.00);
 
-    /** @test */
-    public function it_can_calculate_the_subtotal_of_a_cart_item()
-    {
-        $cart = $this->getCart();
+		$cart->associate('027c91341fd5cf4d2579b49c4b6a90da', new ProductModel);
 
-        $cart->add(new BuyableProduct(1, 'Some title', 9.99), 3);
+		$cartItem = $cart->get('027c91341fd5cf4d2579b49c4b6a90da');
 
-        $cartItem = $cart->get('027c91341fd5cf4d2579b49c4b6a90da');
+		$this->assertInstanceOf(ProductModel::class, $cartItem->model);
+		$this->assertEquals('Some value', $cartItem->model->someValue);
+	}
 
-        $this->assertEquals(29.97, $cartItem->subtotal);
-    }
+	/** @test */
+	public function it_can_calculate_the_subtotal_of_a_cart_item()
+	{
+		$cart = $this->getCart();
 
-    /** @test */
-    public function it_can_return_a_formatted_subtotal()
-    {
-        $cart = $this->getCart();
+		$cart->add(new BuyableProduct(1, 'Some title', 9.99), 3);
 
-        $cart->add(new BuyableProduct(1, 'Some title', 500), 3);
+		$cartItem = $cart->get('027c91341fd5cf4d2579b49c4b6a90da');
 
-        $cartItem = $cart->get('027c91341fd5cf4d2579b49c4b6a90da');
+		$this->assertEquals(29.97, $cartItem->subtotal);
+	}
 
-        $this->assertEquals('1.500,00', $cartItem->subtotal(2, ',', '.'));
-    }
+	/** @test */
+	public function it_can_return_a_formatted_subtotal()
+	{
+		$cart = $this->getCart();
 
-    /** @test */
-    public function it_can_calculate_tax_based_on_the_default_tax_rate_in_the_config()
-    {
-        $cart = $this->getCart();
+		$cart->add(new BuyableProduct(1, 'Some title', 500), 3);
 
-        $cart->add(new BuyableProduct(1, 'Some title', 10.00), 1);
+		$cartItem = $cart->get('027c91341fd5cf4d2579b49c4b6a90da');
 
-        $cartItem = $cart->get('027c91341fd5cf4d2579b49c4b6a90da');
+		$this->assertEquals('1.500,00', $cartItem->subtotal(2, ',', '.'));
+	}
 
-        $this->assertEquals(2.10, $cartItem->tax);
-    }
+	/** @test */
+	public function it_can_calculate_tax_based_on_the_default_tax_rate_in_the_config()
+	{
+		$cart = $this->getCart();
 
-    /** @test */
-    public function it_can_calculate_tax_based_on_the_specified_tax()
-    {
-        $cart = $this->getCart();
+		$cart->add(new BuyableProduct(1, 'Some title', 10.00), 1);
 
-        $cart->add(new BuyableProduct(1, 'Some title', 10.00), 1);
+		$cartItem = $cart->get('027c91341fd5cf4d2579b49c4b6a90da');
 
-        $cart->setTax('027c91341fd5cf4d2579b49c4b6a90da', 19);
+		$this->assertEquals(2.10, $cartItem->tax);
+	}
 
-        $cartItem = $cart->get('027c91341fd5cf4d2579b49c4b6a90da');
+	/** @test */
+	public function it_can_calculate_tax_based_on_the_specified_tax()
+	{
+		$cart = $this->getCart();
 
-        $this->assertEquals(1.90, $cartItem->tax);
-    }
+		$cart->add(new BuyableProduct(1, 'Some title', 10.00), 1);
 
-    /** @test */
-    public function it_can_return_the_calculated_tax_formatted()
-    {
-        $cart = $this->getCart();
+		$cart->setTax('027c91341fd5cf4d2579b49c4b6a90da', 19);
 
-        $cart->add(new BuyableProduct(1, 'Some title', 10000.00), 1);
+		$cartItem = $cart->get('027c91341fd5cf4d2579b49c4b6a90da');
 
-        $cartItem = $cart->get('027c91341fd5cf4d2579b49c4b6a90da');
+		$this->assertEquals(1.90, $cartItem->tax);
+	}
 
-        $this->assertEquals('2.100,00', $cartItem->tax(2, ',', '.'));
-    }
+	/** @test */
+	public function it_can_return_the_calculated_tax_formatted()
+	{
+		$cart = $this->getCart();
 
-    /** @test */
-    public function it_can_calculate_the_total_tax_for_all_cart_items()
-    {
-        $cart = $this->getCart();
+		$cart->add(new BuyableProduct(1, 'Some title', 10000.00), 1);
 
-        $cart->add(new BuyableProduct(1, 'Some title', 10.00), 1);
-        $cart->add(new BuyableProduct(2, 'Some title', 20.00), 2);
+		$cartItem = $cart->get('027c91341fd5cf4d2579b49c4b6a90da');
 
-        $this->assertEquals(10.50, $cart->tax);
-    }
+		$this->assertEquals('2.100,00', $cartItem->tax(2, ',', '.'));
+	}
 
-    /** @test */
-    public function it_can_return_formatted_total_tax()
-    {
-        $cart = $this->getCart();
+	/** @test */
+	public function it_can_calculate_the_total_tax_for_all_cart_items()
+	{
+		$cart = $this->getCart();
 
-        $cart->add(new BuyableProduct(1, 'Some title', 1000.00), 1);
-        $cart->add(new BuyableProduct(2, 'Some title', 2000.00), 2);
+		$cart->add(new BuyableProduct(1, 'Some title', 10.00), 1);
+		$cart->add(new BuyableProduct(2, 'Some title', 20.00), 2);
 
-        $this->assertEquals('1.050,00', $cart->tax(2, ',', '.'));
-    }
+		$this->assertEquals(10.50, $cart->tax);
+	}
 
-    /** @test */
-    public function it_can_return_the_subtotal()
-    {
-        $cart = $this->getCart();
+	/** @test */
+	public function it_can_return_formatted_total_tax()
+	{
+		$cart = $this->getCart();
 
-        $cart->add(new BuyableProduct(1, 'Some title', 10.00), 1);
-        $cart->add(new BuyableProduct(2, 'Some title', 20.00), 2);
+		$cart->add(new BuyableProduct(1, 'Some title', 1000.00), 1);
+		$cart->add(new BuyableProduct(2, 'Some title', 2000.00), 2);
 
-        $this->assertEquals(50.00, $cart->subtotal);
-    }
+		$this->assertEquals('1.050,00', $cart->tax(2, ',', '.'));
+	}
 
-    /** @test */
-    public function it_can_return_formatted_subtotal()
-    {
-        $cart = $this->getCart();
+	/** @test */
+	public function it_can_return_the_subtotal()
+	{
+		$cart = $this->getCart();
 
-        $cart->add(new BuyableProduct(1, 'Some title', 1000.00), 1);
-        $cart->add(new BuyableProduct(2, 'Some title', 2000.00), 2);
+		$cart->add(new BuyableProduct(1, 'Some title', 10.00), 1);
+		$cart->add(new BuyableProduct(2, 'Some title', 20.00), 2);
 
-        $this->assertEquals('5000,00', $cart->subtotal(2, ',', ''));
-    }
+		$this->assertEquals(50.00, $cart->subtotal);
+	}
 
-    /** @test */
-    public function it_can_return_cart_formated_numbers_by_config_values()
-    {
-        $this->setConfigFormat(2, ',', '');
+	/** @test */
+	public function it_can_return_formatted_subtotal()
+	{
+		$cart = $this->getCart();
 
-        $cart = $this->getCart();
+		$cart->add(new BuyableProduct(1, 'Some title', 1000.00), 1);
+		$cart->add(new BuyableProduct(2, 'Some title', 2000.00), 2);
 
-        $cart->add(new BuyableProduct(1, 'Some title', 1000.00), 1);
-        $cart->add(new BuyableProduct(2, 'Some title', 2000.00), 2);
+		$this->assertEquals('5000,00', $cart->subtotal(2, ',', ''));
+	}
 
-        $this->assertEquals('5000,00', $cart->subtotal());
-        $this->assertEquals('1050,00', $cart->tax());
-        $this->assertEquals('6050,00', $cart->total());
+	/** @test */
+	public function it_can_return_cart_formated_numbers_by_config_values()
+	{
+		$this->setConfigFormat(2, ',', '');
 
-        $this->assertEquals('5000,00', $cart->subtotal);
-        $this->assertEquals('1050,00', $cart->tax);
-        $this->assertEquals('6050,00', $cart->total);
-    }
+		$cart = $this->getCart();
 
-    /** @test */
-    public function it_can_return_cartItem_formated_numbers_by_config_values()
-    {
-        $this->setConfigFormat(2, ',', '');
+		$cart->add(new BuyableProduct(1, 'Some title', 1000.00), 1);
+		$cart->add(new BuyableProduct(2, 'Some title', 2000.00), 2);
 
-        $cart = $this->getCart();
+		$this->assertEquals('5000,00', $cart->subtotal());
+		$this->assertEquals('1050,00', $cart->tax());
+		$this->assertEquals('6050,00', $cart->total());
 
-        $cart->add(new BuyableProduct(1, 'Some title', 2000.00), 2);
+		$this->assertEquals('5000,00', $cart->subtotal);
+		$this->assertEquals('1050,00', $cart->tax);
+		$this->assertEquals('6050,00', $cart->total);
+	}
 
-        $cartItem = $cart->get('027c91341fd5cf4d2579b49c4b6a90da');
+	/** @test */
+	public function it_can_return_cartItem_formated_numbers_by_config_values()
+	{
+		$this->setConfigFormat(2, ',', '');
 
-        $this->assertEquals('2000,00', $cartItem->price());
-        $this->assertEquals('2420,00', $cartItem->priceTax());
-        $this->assertEquals('4000,00', $cartItem->subtotal());
-        $this->assertEquals('4840,00', $cartItem->total());
-        $this->assertEquals('420,00', $cartItem->tax());
-        $this->assertEquals('840,00', $cartItem->taxTotal());
-    }
+		$cart = $this->getCart();
 
-    /** @test */
-    public function it_can_store_the_cart_in_a_database()
-    {
-        $this->artisan('migrate', [
-            '--database' => 'testing',
-        ]);
+		$cart->add(new BuyableProduct(1, 'Some title', 2000.00), 2);
 
-        Event::fake();
+		$cartItem = $cart->get('027c91341fd5cf4d2579b49c4b6a90da');
 
-        $cart = $this->getCart();
+		$this->assertEquals('2000,00', $cartItem->price());
+		$this->assertEquals('2420,00', $cartItem->priceTax());
+		$this->assertEquals('4000,00', $cartItem->subtotal());
+		$this->assertEquals('4840,00', $cartItem->total());
+		$this->assertEquals('420,00', $cartItem->tax());
+		$this->assertEquals('840,00', $cartItem->taxTotal());
+	}
 
-        $cart->add(new BuyableProduct);
+	/** @test */
+	public function it_can_store_the_cart_in_a_database()
+	{
+		$this->artisan('migrate', [
+			'--database' => 'testing',
+		]);
 
-        $cart->store($identifier = 123);
+		Event::fake();
 
-        $serialized = serialize($cart->content());
+		$cart = $this->getCart();
 
-        $this->assertDatabaseHas('shoppingcart', ['identifier' => $identifier, 'instance' => 'default', 'content' => $serialized]);
+		$cart->add(new BuyableProduct);
 
-        Event::assertDispatched('cart.stored');
-    }
+		$cart->store($identifier = 123);
 
-    /**
-     * @test
-     * @expectedException \Gloudemans\Shoppingcart\Exceptions\CartAlreadyStoredException
-     * @expectedExceptionMessage A cart with identifier 123 was already stored.
-     */
-    public function it_will_throw_an_exception_when_a_cart_was_already_stored_using_the_specified_identifier()
-    {
-        $this->artisan('migrate', [
-            '--database' => 'testing',
-        ]);
+		$serialized = serialize($cart->content());
 
-        Event::fake();
+		$this->assertDatabaseHas('shoppingcart', ['identifier' => $identifier, 'instance' => 'default', 'content' => $serialized]);
 
-        $cart = $this->getCart();
+		Event::assertDispatched('cart.stored');
+	}
 
-        $cart->add(new BuyableProduct);
+	/**
+	 * @test
+	 * @expectedException \Gloudemans\Shoppingcart\Exceptions\CartAlreadyStoredException
+	 * @expectedExceptionMessage A cart with identifier 123 was already stored.
+	 */
+	public function it_will_throw_an_exception_when_a_cart_was_already_stored_using_the_specified_identifier()
+	{
+		$this->artisan('migrate', [
+			'--database' => 'testing',
+		]);
 
-        $cart->store($identifier = 123);
+		Event::fake();
 
-        $cart->store($identifier);
+		$cart = $this->getCart();
 
-        Event::assertDispatched('cart.stored');
-    }
+		$cart->add(new BuyableProduct);
 
-    /** @test */
-    public function it_can_restore_a_cart_from_the_database()
-    {
-        $this->artisan('migrate', [
-            '--database' => 'testing',
-        ]);
+		$cart->store($identifier = 123);
 
-        Event::fake();
+		$cart->store($identifier);
 
-        $cart = $this->getCart();
+		Event::assertDispatched('cart.stored');
+	}
 
-        $cart->add(new BuyableProduct);
+	/** @test */
+	public function it_can_restore_a_cart_from_the_database()
+	{
+		$this->artisan('migrate', [
+			'--database' => 'testing',
+		]);
 
-        $cart->store($identifier = 123);
+		Event::fake();
 
-        $cart->destroy();
+		$cart = $this->getCart();
 
-        $this->assertItemsInCart(0, $cart);
+		$cart->add(new BuyableProduct);
 
-        $cart->restore($identifier);
+		$cart->store($identifier = 123);
 
-        $this->assertItemsInCart(1, $cart);
+		$cart->destroy();
 
-        $this->assertDatabaseMissing('shoppingcart', ['identifier' => $identifier, 'instance' => 'default']);
+		$this->assertItemsInCart(0, $cart);
 
-        Event::assertDispatched('cart.restored');
-    }
+		$cart->restore($identifier);
 
-    /** @test */
-    public function it_will_just_keep_the_current_instance_if_no_cart_with_the_given_identifier_was_stored()
-    {
-        $this->artisan('migrate', [
-            '--database' => 'testing',
-        ]);
+		$this->assertItemsInCart(1, $cart);
 
-        $cart = $this->getCart();
+		$this->assertDatabaseMissing('shoppingcart', ['identifier' => $identifier, 'instance' => 'default']);
 
-        $cart->restore($identifier = 123);
+		Event::assertDispatched('cart.restored');
+	}
 
-        $this->assertItemsInCart(0, $cart);
-    }
+	/** @test */
+	public function it_will_just_keep_the_current_instance_if_no_cart_with_the_given_identifier_was_stored()
+	{
+		$this->artisan('migrate', [
+			'--database' => 'testing',
+		]);
 
-    /** @test */
-    public function it_can_calculate_all_values()
-    {
-        $cart = $this->getCart();
+		$cart = $this->getCart();
 
-        $cart->add(new BuyableProduct(1, 'First item', 10.00), 2);
+		$cart->restore($identifier = 123);
 
-        $cartItem = $cart->get('027c91341fd5cf4d2579b49c4b6a90da');
+		$this->assertItemsInCart(0, $cart);
+	}
 
-        $cart->setTax('027c91341fd5cf4d2579b49c4b6a90da', 19);
+	/** @test */
+	public function it_can_calculate_all_values()
+	{
+		$cart = $this->getCart();
 
-        $this->assertEquals(10.00, $cartItem->price(2));
-        $this->assertEquals(11.90, $cartItem->priceTax(2));
-        $this->assertEquals(20.00, $cartItem->subtotal(2));
-        $this->assertEquals(23.80, $cartItem->total(2));
-        $this->assertEquals(1.90, $cartItem->tax(2));
-        $this->assertEquals(3.80, $cartItem->taxTotal(2));
+		$cart->add(new BuyableProduct(1, 'First item', 10.00), 2);
 
-        $this->assertEquals(20.00, $cart->subtotal(2));
-        $this->assertEquals(23.80, $cart->total(2));
-        $this->assertEquals(3.80, $cart->tax(2));
-    }
+		$cartItem = $cart->get('027c91341fd5cf4d2579b49c4b6a90da');
 
-    /** @test */
-    public function it_will_destroy_the_cart_when_the_user_logs_out_and_the_config_setting_was_set_to_true()
-    {
-        $this->app['config']->set('cart.destroy_on_logout', true);
+		$cart->setTax('027c91341fd5cf4d2579b49c4b6a90da', 19);
 
-        $this->app->instance(SessionManager::class, Mockery::mock(SessionManager::class, function ($mock) {
-            $mock->shouldReceive('forget')->once()->with('cart');
-        }));
+		$this->assertEquals(10.00, $cartItem->price(2));
+		$this->assertEquals(11.90, $cartItem->priceTax(2));
+		$this->assertEquals(20.00, $cartItem->subtotal(2));
+		$this->assertEquals(23.80, $cartItem->total(2));
+		$this->assertEquals(1.90, $cartItem->tax(2));
+		$this->assertEquals(3.80, $cartItem->taxTotal(2));
 
-        $user = Mockery::mock(Authenticatable::class);
+		$this->assertEquals(20.00, $cart->subtotal(2));
+		$this->assertEquals(23.80, $cart->total(2));
+		$this->assertEquals(3.80, $cart->tax(2));
+	}
 
-        event(new Logout($user));
-    }
+	/** @test */
+	public function it_will_destroy_the_cart_when_the_user_logs_out_and_the_config_setting_was_set_to_true()
+	{
+		$this->app['config']->set('cart.destroy_on_logout', true);
 
-    /**
-     * Get an instance of the cart.
-     *
-     * @return \Gloudemans\Shoppingcart\Cart
-     */
-    private function getCart()
-    {
-        $session = $this->app->make('session');
-        $events = $this->app->make('events');
+		$this->app->instance(SessionManager::class, Mockery::mock(SessionManager::class, function ($mock) {
+			$mock->shouldReceive('forget')->once()->with('cart');
+		}));
 
-        return new Cart($session, $events);
-    }
+		$user = Mockery::mock(Authenticatable::class);
 
-    /**
-     * Set the config number format.
-     * 
-     * @param int    $decimals
-     * @param string $decimalPoint
-     * @param string $thousandSeperator
-     */
-    private function setConfigFormat($decimals, $decimalPoint, $thousandSeperator)
-    {
-        $this->app['config']->set('cart.format.decimals', $decimals);
-        $this->app['config']->set('cart.format.decimal_point', $decimalPoint);
-        $this->app['config']->set('cart.format.thousand_seperator', $thousandSeperator);
-    }
+		event(new Logout("LogOut", $user));
+	}
+
+	/**
+	 * Get an instance of the cart.
+	 *
+	 * @return \Gloudemans\Shoppingcart\Cart
+	 */
+	private function getCart()
+	{
+		$session = $this->app->make('session');
+		$events = $this->app->make('events');
+
+		return new Cart($session, $events);
+	}
+
+	/**
+	 * Set the config number format.
+	 *
+	 * @param int    $decimals
+	 * @param string $decimalPoint
+	 * @param string $thousandSeperator
+	 */
+	private function setConfigFormat($decimals, $decimalPoint, $thousandSeperator)
+	{
+		$this->app['config']->set('cart.format.decimals', $decimals);
+		$this->app['config']->set('cart.format.decimal_point', $decimalPoint);
+		$this->app['config']->set('cart.format.thousand_seperator', $thousandSeperator);
+	}
 }

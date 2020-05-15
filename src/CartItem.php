@@ -5,6 +5,7 @@ namespace Gloudemans\Shoppingcart;
 use Illuminate\Contracts\Support\Arrayable;
 use Gloudemans\Shoppingcart\Contracts\Buyable;
 use Illuminate\Contracts\Support\Jsonable;
+use Illuminate\Support\Arr;
 
 class CartItem implements Arrayable, Jsonable
 {

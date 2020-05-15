@@ -6,7 +6,7 @@ use Closure;
 use Illuminate\Support\Collection;
 use Illuminate\Session\SessionManager;
 use Illuminate\Database\DatabaseManager;
-use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Events\Dispatcher;
 use Gloudemans\Shoppingcart\Contracts\Buyable;
 use Gloudemans\Shoppingcart\Exceptions\UnknownModelException;
 use Gloudemans\Shoppingcart\Exceptions\InvalidRowIDException;
@@ -26,7 +26,7 @@ class Cart
 	/**
 	 * Instance of the event dispatcher.
 	 *
-	 * @var \Illuminate\Contracts\Events\Dispatcher
+	 * @var \Illuminate\Support\Facades\Event
 	 */
 	protected $events;
 
@@ -41,7 +41,7 @@ class Cart
 	 * Cart constructor.
 	 *
 	 * @param \Illuminate\Session\SessionManager      $session
-	 * @param \Illuminate\Contracts\Events\Dispatcher $events
+	 * @param Illuminate\Events\Dispatcher $events
 	 */
 	public function __construct(SessionManager $session, Dispatcher $events)
 	{
@@ -148,7 +148,7 @@ class Cart
 			$content->put($cartItem->rowId, $cartItem);
 		}
 
-		$this->events->fire('cart.updated', $cartItem);
+		$this->events->dispatch('cart.updated', $cartItem);
 
 		$this->session->put($this->instance, $content);
 
@@ -169,7 +169,7 @@ class Cart
 
 		$content->pull($cartItem->rowId);
 
-		$this->events->fire('cart.removed', $cartItem);
+		$this->events->dispatch('cart.removed', $cartItem);
 
 		$this->session->put($this->instance, $content);
 	}
@@ -375,7 +375,7 @@ class Cart
 			'content' => serialize($content)
 		]);
 
-		$this->events->fire('cart.stored');
+		$this->events->dispatch('cart.stored');
 	}
 
 	/**
@@ -405,7 +405,7 @@ class Cart
 			$content->put($cartItem->rowId, $cartItem);
 		}
 
-		$this->events->fire('cart.restored');
+		$this->events->dispatch('cart.restored');
 
 		$this->session->put($this->instance, $content);
 
